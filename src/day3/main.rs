@@ -6,7 +6,7 @@ use std::env;
 use std::fs::File;
 use std::io::{self, prelude::*, BufReader};
 use std::num::ParseIntError;
-use std::ops::{Add, AddAssign};
+use std::ops::{Add, AddAssign, Sub};
 
 quick_error! {
     #[derive(Debug)]
@@ -33,6 +33,15 @@ impl Cardinal {
             Cardinal::Down(_) => false,
             Cardinal::Left(_) => true,
             Cardinal::Right(_) => true,
+        }
+    }
+
+    fn distance(self) -> u32 {
+        match self {
+            Cardinal::Up(value) => value,
+            Cardinal::Down(value) => value,
+            Cardinal::Left(value) => value,
+            Cardinal::Right(value) => value,
         }
     }
 }
@@ -112,12 +121,20 @@ impl AddAssign<Cardinal> for Coordinate {
     }
 }
 
+impl Sub for Coordinate {
+    type Output = Self;
+    fn sub(self, rhs: Self) -> Self {
+        Coordinate(self.0 - rhs.0, self.1 - rhs.1)
+    }
+}
+
 #[test]
 fn test_coordinates() {
     assert_eq!(Coordinate(1, 2) + Cardinal::Up(2), Coordinate(1, 4));
     assert_eq!(Coordinate(-1, 2) + Cardinal::Down(3), Coordinate(-1, -1));
     assert_eq!(Coordinate(1, 2) + Cardinal::Left(2), Coordinate(-1, 2));
     assert_eq!(Coordinate(-1, 2) + Cardinal::Right(3), Coordinate(2, 2));
+    assert_eq!(Coordinate(4, 6) - Coordinate(3, 4), Coordinate(1, 2));
 }
 
 fn is_contained(p: i32, a: i32, b: i32) -> bool {
@@ -169,12 +186,15 @@ fn test_intersect_lines() {
     assert_eq!(intersect_lines(Coordinate(0, 2), Cardinal::Right(3), Coordinate(4, 0), Cardinal::Up(4)), None);
 }
 
-fn find_intersection(first: WireSlice, second: WireSlice) -> Option<u32> {
+fn find_intersection(first: WireSlice, second: WireSlice) -> Option<(u32, u32)> {
     let mut closest: Option<Coordinate> = None;
+    let mut shortest: Option<u32> = None;
 
     let mut origin1 = Coordinate(0, 0);
+    let mut distance1 = 0;
     for &cardinal1 in first {
         let mut origin2 = Coordinate(0, 0);
+        let mut distance2 = 0;
         for &cardinal2 in second {
             if let Some(point) = intersect_lines(origin1, cardinal1, origin2, cardinal2) {
                 // Ignore intersections at the origin
@@ -183,18 +203,26 @@ fn find_intersection(first: WireSlice, second: WireSlice) -> Option<u32> {
                         Some(old) => if point.distance() < old.distance() { point } else { old },
                         None => point,
                     });
+                    // Distance to start of each segment PLUS distance from each segment to intersection
+                    let distance = distance1 + distance2 + (point - origin1).distance() + (point - origin2).distance();
+                    shortest = Some(match shortest {
+                        Some(old) => if distance < old { distance } else { old },
+                        None => distance,
+                    });
                 }
             }
             origin2 += cardinal2;
+            distance2 += cardinal2.distance();
         }
         origin1 += cardinal1;
+        distance1 += cardinal1.distance();
     }
 
-    closest.map(Coordinate::distance)
+    closest.map(|c| (Coordinate::distance(c), shortest.unwrap()))
 }
 
 #[cfg(test)]
-fn find_intersection_helper(first: &str, second: &str, result: u32) {
+fn find_intersection_helper(first: &str, second: &str, result: (u32, u32)) {
     let first = parse_wire(first).unwrap();
     let second = parse_wire(second).unwrap();
     assert_eq!(find_intersection(&first, &second), Some(result));
@@ -205,17 +233,17 @@ fn test_find_intersection() {
     find_intersection_helper(
         "R8,U5,L5,D3",
         "U7,R6,D4,L4",
-        6);
+        (6, 30));
 
     find_intersection_helper(
         "R75,D30,R83,U83,L12,D49,R71,U7,L72",
         "U62,R66,U55,R34,D71,R55,D58,R83",
-        159);
+        (159, 610));
 
     find_intersection_helper(
         "R98,U47,R26,D63,R33,U87,L62,D20,R33,U53,R51",
         "U98,R91,D20,R16,D67,R40,U7,R15,U6,R7",
-        135);
+        (135, 410));
 }
 
 fn main() -> SuperResult<()> {
