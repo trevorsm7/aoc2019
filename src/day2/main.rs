@@ -16,8 +16,8 @@ quick_error! {
 
 fn main() -> Result<(), SuperError> {
     let input = {
-        let args = env::args();
-        let name: Cow<'static, str> = args.skip(1).next().map(|s| s.into()).unwrap_or("input".into());
+        let mut args = env::args();
+        let name: Cow<'static, str> = args.nth(1).map(|s| s.into()).unwrap_or_else(|| "input".into());
         std::fs::read_to_string(name.as_ref())?
     };
 
@@ -26,14 +26,12 @@ fn main() -> Result<(), SuperError> {
         .collect::<Result<Vec<usize>, ParseIntError>>()?;
 
     // "before running the program, replace position 1 with the value 12 and replace position 2 with the value 2"
-    let result = run_program_with(&memory, 12, 2)?;
-    println!("Part 1: {}", result);
+    println!("Part 1: {}", run_program_with(&memory, 12, 2)?);
 
     // for some reason, position 1 and 2 are nouns and verbs and we need to brute force them until we get 19690720?
     'exit: for noun in 0..=99 {
         for verb in 0..=99 {
-            let result = run_program_with(&memory, noun, verb)?;
-            if result == 19690720 {
+            if run_program_with(&memory, noun, verb)? == 19690720 {
                 println!("Part 2: {}", 100 * noun + verb);
                 break 'exit;
             }
@@ -47,8 +45,10 @@ fn run_program_with(memory: &[usize], noun: usize, verb: usize) -> io::Result<us
     let mut memory = Vec::from(memory);
     memory[1] = noun;
     memory[2] = verb;
-    run_program(&mut memory)?;
-    Ok(memory[0])
+    match run_program(&mut memory) {
+        Ok(()) => Ok(memory[0]),
+        Err(e) => Err(e),
+    }
 }
 
 fn run_program(memory: &mut [usize]) -> io::Result<()> {
@@ -68,7 +68,8 @@ fn run_program(memory: &mut [usize]) -> io::Result<()> {
                 memory[c] = memory[a] * memory[b];
             },
             99 => return Ok(()),
-            _ => return Err(io::Error::new(io::ErrorKind::Other, format!("Illegal opcode {} at PC {}", memory[pc], pc))),
+            _ => return Err(io::Error::new(io::ErrorKind::Other,
+                format!("Illegal opcode {} at PC {}", memory[pc], pc))),
         };
         pc += 4;
     }

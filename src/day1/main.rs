@@ -5,8 +5,8 @@ use std::io::{prelude::*, BufReader};
 
 fn main() -> std::io::Result<()> {
     let reader = {
-        let args = env::args();
-        let name: Cow<'static, str> = args.skip(1).next().map(|s| s.into()).unwrap_or("input".into());
+        let mut args = env::args();
+        let name: Cow<'static, str> = args.nth(1).map(|s| s.into()).unwrap_or_else(|| "input".into());
         let file = File::open(name.as_ref())?;
         BufReader::new(file)
     };
