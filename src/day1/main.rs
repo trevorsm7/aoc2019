@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::env;
 use std::fs::File;
 use std::io::{prelude::*, BufReader};
@@ -5,8 +6,8 @@ use std::io::{prelude::*, BufReader};
 fn main() -> std::io::Result<()> {
     let reader = {
         let args = env::args();
-        let name = args.skip(1).next().unwrap_or("input".to_string());
-        let file = File::open(name)?;
+        let name: Cow<'static, str> = args.skip(1).next().map(|s| s.into()).unwrap_or("input".into());
+        let file = File::open(name.as_ref())?;
         BufReader::new(file)
     };
 

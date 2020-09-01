@@ -1,6 +1,7 @@
 #[macro_use]
 extern crate quick_error;
 
+use std::borrow::Cow;
 use std::env;
 use std::io;
 use std::num::ParseIntError;
@@ -16,8 +17,8 @@ quick_error! {
 fn main() -> Result<(), SuperError> {
     let input = {
         let args = env::args();
-        let name = args.skip(1).next().unwrap_or("input".to_string());
-        std::fs::read_to_string(name)?
+        let name: Cow<'static, str> = args.skip(1).next().map(|s| s.into()).unwrap_or("input".into());
+        std::fs::read_to_string(name.as_ref())?
     };
 
     let memory = input.trim().split(',')
