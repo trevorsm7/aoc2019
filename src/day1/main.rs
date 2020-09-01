@@ -1,19 +1,8 @@
-#[macro_use]
-extern crate quick_error;
-
 use std::env;
 use std::fs::File;
 use std::io::{prelude::*, BufReader};
 
-quick_error! {
-    #[derive(Debug)]
-    pub enum SuperError {
-        IoError(err: std::io::Error) { from() }
-        ParseIntError(err: std::num::ParseIntError) { from() }
-    }
-}
-
-fn main() -> Result<(), SuperError> {
+fn main() -> std::io::Result<()> {
     let reader = {
         let args = env::args();
         let name = args.skip(1).next().unwrap_or("input".to_string());
@@ -31,23 +20,6 @@ fn main() -> Result<(), SuperError> {
 
     Ok(())
 }
-
-/*
-To propagate errors while iterating instead of filtering, use this:
-
-let mut err = Ok(());
-let result: u32 = reader.lines()
-    .map(|line| Ok(compute_fuel(line?.trim().parse()?)))
-    .scan(&mut err, |err, res| match res {
-        Ok(o) => Some(o),
-        Err(e) => {
-            **err = Err(e);
-            None
-        }
-    })
-    .sum();
-err
-*/
 
 fn compute_fuel(input: u32) -> u32 {
     if input > 2 * 3 {
