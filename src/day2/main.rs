@@ -20,18 +20,34 @@ fn main() -> Result<(), SuperError> {
         std::fs::read_to_string(name)?
     };
 
-    let mut memory = input.trim().split(',')
+    let memory = input.trim().split(',')
         .map(str::parse)
         .collect::<Result<Vec<usize>, ParseIntError>>()?;
 
     // "before running the program, replace position 1 with the value 12 and replace position 2 with the value 2"
-    memory[1] = 12;
-    memory[2] = 2;
+    let result = run_program_with(&memory, 12, 2)?;
+    println!("Part 1: {}", result);
 
-    run_program(&mut memory)?;
-    println!("Result: {}", memory[0]);
+    // for some reason, position 1 and 2 are nouns and verbs and we need to brute force them until we get 19690720?
+    'exit: for noun in 0..=99 {
+        for verb in 0..=99 {
+            let result = run_program_with(&memory, noun, verb)?;
+            if result == 19690720 {
+                println!("Part 2: {}", 100 * noun + verb);
+                break 'exit;
+            }
+        }
+    }
 
     Ok(())
+}
+
+fn run_program_with(memory: &[usize], noun: usize, verb: usize) -> io::Result<usize> {
+    let mut memory = Vec::from(memory);
+    memory[1] = noun;
+    memory[2] = verb;
+    run_program(&mut memory)?;
+    Ok(memory[0])
 }
 
 fn run_program(memory: &mut [usize]) -> io::Result<()> {
