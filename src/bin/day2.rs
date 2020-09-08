@@ -25,7 +25,7 @@ fn main() -> Result<(), SuperError> {
 
     let memory = input.trim().split(',')
         .map(str::parse)
-        .collect::<Result<Vec<usize>, ParseIntError>>()?;
+        .collect::<Result<Vec<isize>, ParseIntError>>()?;
 
     // "before running the program, replace position 1 with the value 12 and replace position 2 with the value 2"
     println!("Part 1: {}", run_program_with(&memory, 12, 2)?);
@@ -43,19 +43,19 @@ fn main() -> Result<(), SuperError> {
     Ok(())
 }
 
-fn run_program_with(memory: &[usize], noun: usize, verb: usize) -> io::Result<usize> {
+fn run_program_with(memory: &[isize], noun: isize, verb: isize) -> io::Result<isize> {
     let mut memory = Vec::from(memory);
     memory[1] = noun;
     memory[2] = verb;
-    match run_program(&mut memory) {
-        Ok(()) => Ok(memory[0]),
+    match run_program(&mut memory, &[]) {
+        Ok(_) => Ok(memory[0]),
         Err(e) => Err(e),
     }
 }
 
 #[cfg(test)]
-fn test_program(mut input: Vec<usize>, output: Vec<usize>) {
-    run_program(&mut input).unwrap();
+fn test_program(mut input: Vec<isize>, output: Vec<isize>) {
+    assert_eq!(run_program(&mut input, &[]).unwrap(), &[]);
     assert_eq!(input, output);
 }
 

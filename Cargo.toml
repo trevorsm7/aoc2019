@@ -22,5 +22,8 @@ name = "day3"
 [[bin]]
 name = "day4"
 
+[[bin]]
+name = "day5"
+
 [dependencies]
 quick-error = "2.0.0"
