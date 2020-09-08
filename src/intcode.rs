@@ -25,7 +25,6 @@ fn store(memory: &mut [isize], address: usize, mode: isize, value: isize) -> io:
 pub fn run_program(mut memory: &mut [isize], inputs: &[isize]) -> io::Result<Vec<isize>> {
     let mut pc = 0;
     let mut output = Vec::new();
-    println!("Mem: {}, Inputs: {:?}", memory.len(), inputs);
     loop {
         let opcode = memory[pc] % 100;
         let mode1 = memory[pc] / 100 % 10;
@@ -49,9 +48,34 @@ pub fn run_program(mut memory: &mut [isize], inputs: &[isize]) -> io::Result<Vec
                 pc += 2;
             },
             4 => { // Output
-                let a = load(&memory, pc + 1, mode1)?;
-                output.push(a);
+                output.push(load(&memory, pc + 1, mode1)?);
                 pc += 2;
+            },
+            5 => { // jump-if-true
+                if load(&memory, pc + 1, mode1)? != 0 {
+                    pc = load(&memory, pc + 2, mode2)? as usize;
+                } else {
+                    pc += 3;
+                }
+            },
+            6 => { // jump-if-false
+                if load(&memory, pc + 1, mode1)? == 0 {
+                    pc = load(&memory, pc + 2, mode2)? as usize;
+                } else {
+                    pc += 3;
+                }
+            },
+            7 => { // less than
+                let a = load(&memory, pc + 1, mode1)?;
+                let b = load(&memory, pc + 2, mode2)?;
+                store(&mut memory, pc + 3, mode3, if a < b { 1 } else { 0 })?;
+                pc += 4;
+            },
+            8 => { // equals
+                let a = load(&memory, pc + 1, mode1)?;
+                let b = load(&memory, pc + 2, mode2)?;
+                store(&mut memory, pc + 3, mode3, if a == b { 1 } else { 0 })?;
+                pc += 4;
             },
             99 => return Ok(output),
             _ => return Err(io::Error::new(io::ErrorKind::Other,
