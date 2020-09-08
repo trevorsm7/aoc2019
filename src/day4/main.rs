@@ -11,15 +11,19 @@ fn main() {
 
     let end = &input[1];
     let mut current = first_monotonic_sequence(&input[0]);
-    let mut counter = 0;
+    let mut repeating_count = 0;
+    let mut doubled_count = 0;
     while is_sequence_le(&current, end) {
         if is_sequence_repeating(&current) {
-            counter += 1;
+            repeating_count += 1;
+        }
+        if is_sequence_doubled(&current) {
+            doubled_count += 1;
         }
         increment_monotonic_sequence(&mut current);
     }
 
-    println!("{}", counter);
+    println!("{} {}", repeating_count, doubled_count);
 }
 
 fn first_monotonic_sequence(input: &[u32]) -> Vec<u32> {
@@ -116,6 +120,31 @@ fn test_is_sequence_repeating() {
     assert_eq!(is_sequence_repeating(&[1, 1, 1, 1, 1, 1]), true);
     assert_eq!(is_sequence_repeating(&[2, 2, 3, 4, 5, 0]), true);
     assert_eq!(is_sequence_repeating(&[1, 2, 3, 7, 8, 9]), false);
+}
+
+fn is_sequence_doubled(sequence: &[u32]) -> bool {
+    let mut prev = sequence[0];
+    let mut repeat_count = 0;
+    let mut doubled = false;
+    for &digit in sequence.iter().skip(1) {
+        if digit == prev {
+            repeat_count += 1;
+        } else {
+            if repeat_count == 1 {
+                doubled = true;
+            }
+            repeat_count = 0;
+        }
+        prev = digit;
+    }
+    doubled || repeat_count == 1
+}
+
+#[test]
+fn test_is_sequence_doubled() {
+    assert_eq!(is_sequence_doubled(&[1, 1, 2, 2, 3, 3]), true);
+    assert_eq!(is_sequence_doubled(&[1, 2, 3, 4, 4, 4]), false);
+    assert_eq!(is_sequence_doubled(&[1, 1, 1, 1, 2, 2]), true);
 }
 
 #[cfg(test)]
