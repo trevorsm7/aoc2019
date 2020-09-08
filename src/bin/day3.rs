@@ -106,6 +106,7 @@ fn test_distance() {
 impl Add<Cardinal> for Coordinate {
     type Output = Self;
     fn add(self, rhs: Cardinal) -> Self {
+        #[allow(clippy::suspicious_arithmetic_impl)] // this is a silly lint
         match rhs {
             Cardinal::Up(value) => Coordinate(self.0, self.1 + value as i32),
             Cardinal::Down(value) => Coordinate(self.0, self.1 - value as i32),

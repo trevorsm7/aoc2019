@@ -23,7 +23,7 @@ fn main() -> Result<(), SuperError> {
         std::fs::read_to_string(name.as_ref())?
     };
 
-    let memory = input.trim().split(',')
+    let mut memory = input.trim().split(',')
         .map(str::parse)
         .collect::<Result<Vec<isize>, ParseIntError>>()?;
 
@@ -35,7 +35,7 @@ fn main() -> Result<(), SuperError> {
     };
 
     let part2 = {
-        let mut memory = memory.clone();
+        //let mut memory = memory.clone();
         *run_program(&mut memory, &[5])?.last().unwrap()
     };
 

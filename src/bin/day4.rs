@@ -1,11 +1,12 @@
 use std::env;
+use std::cmp::Ordering;
 
 fn main() {
     let input = env::args().nth(1).expect("Expected argument ######-######")
         .trim().split('-')
         .map(|s| {
             s.chars().map(|c| {
-                c.to_digit(10).expect(&format!("Invalid digit {}", c))
+                c.to_digit(10).unwrap_or_else(|| panic!("Invalid digit {}", c))
             }).collect::<Vec<u32>>()
         }).collect::<Vec<Vec<u32>>>();
 
@@ -51,10 +52,10 @@ fn test_first_monotonic_sequence() {
 
 fn is_sequence_le(a: &[u32], b: &[u32]) -> bool {
     for (da, db) in a.iter().zip(b.iter()) {
-        if da < db {
-            return true;
-        } else if da > db {
-            return false;
+        match da.cmp(&db) {
+            Ordering::Less => return true,
+            Ordering::Greater => return false,
+            _ => (),
         }
     }
     true
