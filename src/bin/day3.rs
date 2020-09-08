@@ -249,10 +249,9 @@ fn test_find_intersection() {
 
 fn main() -> SuperResult<()> {
     let reader = {
-        let mut args = env::args();
-        let name: Cow<'static, str> = args.nth(1).map(|s| s.into()).unwrap_or_else(|| "input".into());
-        let file = File::open(name.as_ref())?;
-        BufReader::new(file)
+        let name: Cow<'static, str> = env::args().nth(1)
+            .map(|s| s.into()).unwrap_or_else(|| "input".into());
+        BufReader::new(File::open(name.as_ref())?)
     };
 
     // Collect lines of input into Vec<Vec<Cardinal>>

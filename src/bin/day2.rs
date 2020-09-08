@@ -18,8 +18,8 @@ quick_error! {
 
 fn main() -> Result<(), SuperError> {
     let input = {
-        let mut args = env::args();
-        let name: Cow<'static, str> = args.nth(1).map(|s| s.into()).unwrap_or_else(|| "input".into());
+        let name: Cow<'static, str> = env::args().nth(1)
+            .map(|s| s.into()).unwrap_or_else(|| "input".into());
         std::fs::read_to_string(name.as_ref())?
     };
 

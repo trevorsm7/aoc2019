@@ -18,8 +18,8 @@ quick_error! {
 
 fn main() -> Result<(), SuperError> {
     let input = {
-        let mut args = env::args();
-        let name: Cow<'static, str> = args.nth(1).map(|s| s.into()).unwrap_or_else(|| "input".into());
+        let name: Cow<'static, str> = env::args().nth(1)
+            .map(|s| s.into()).unwrap_or_else(|| "input".into());
         std::fs::read_to_string(name.as_ref())?
     };
 
@@ -30,6 +30,7 @@ fn main() -> Result<(), SuperError> {
     let part1 = {
         let mut memory = memory.clone();
         let output = run_program(&mut memory, &[1])?;
+        // expect all zeros except for last output
         assert!(output.iter().rev().skip(1).all(|&i| i == 0));
         *output.last().unwrap()
     };
