@@ -47,14 +47,14 @@ fn main() -> Result<(), SuperError> {
 
 #[cfg(test)]
 fn test_program_helper(mut memory: Vec<isize>, input: &[isize], memory_expected: &[isize], output_expected: &[isize]) {
-    let output = run_program(&mut memory, &input).unwrap();
+    let output = run_program(&mut memory, input).unwrap();
     assert_eq!(memory, memory_expected);
     assert_eq!(output, output_expected);
 }
 
 #[cfg(test)]
 fn test_program_io(mut memory: Vec<isize>, input: &[isize], output_expected: &[isize]) {
-    let output = run_program(&mut memory, &input).unwrap();
+    let output = run_program(&mut memory, input).unwrap();
     assert_eq!(output, output_expected);
 }
 

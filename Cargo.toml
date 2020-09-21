@@ -28,5 +28,9 @@ name = "day5"
 [[bin]]
 name = "day6"
 
+[[bin]]
+name = "day7"
+
 [dependencies]
 quick-error = "2.0.0"
+itertools = "0.9.0"

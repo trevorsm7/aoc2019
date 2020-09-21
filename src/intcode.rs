@@ -22,7 +22,10 @@ fn store(memory: &mut [isize], address: usize, mode: isize, value: isize) -> io:
     }
 }
 
-pub fn run_program(mut memory: &mut [isize], inputs: &[isize]) -> io::Result<Vec<isize>> {
+pub fn run_program<'a, I>(mut memory: &mut [isize], inputs: I) -> io::Result<Vec<isize>>
+    where I: IntoIterator<Item = &'a isize>,
+{
+    let mut inputs = inputs.into_iter();
     let mut pc = 0;
     let mut output = Vec::new();
     loop {
@@ -44,7 +47,7 @@ pub fn run_program(mut memory: &mut [isize], inputs: &[isize]) -> io::Result<Vec
                 pc += 4;
             },
             3 => { // Input
-                store(&mut memory, pc + 1, mode1, inputs[0])?;
+                store(&mut memory, pc + 1, mode1, *inputs.next().unwrap())?;
                 pc += 2;
             },
             4 => { // Output
