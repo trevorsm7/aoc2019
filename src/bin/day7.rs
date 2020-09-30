@@ -3,7 +3,7 @@ extern crate quick_error;
 
 use itertools::Itertools;
 
-use intcode::run_program;
+use intcode::Intcode;
 
 use std::borrow::Cow;
 use std::env;
@@ -50,9 +50,11 @@ fn main() -> SuperResult<()> {
 fn run_amplifier(memory: &[isize], sequence: &[isize]) -> SuperResult<isize> {
     let mut input = 0;
     for i in 0..5 {
-        let mut memory = Vec::from(memory);
-        let output = run_program(&mut memory, &[sequence[i], input])?;
-        input = *output.first().ok_or_else(||
+        let mut program = Intcode::new(memory);
+        program.run()?;
+        program.resume(sequence[i])?;
+        program.resume(input)?;
+        input = *program.output.first().ok_or_else(||
             io::Error::new(io::ErrorKind::Other, "Program failed to produce output"))?;
     }
     Ok(input)
