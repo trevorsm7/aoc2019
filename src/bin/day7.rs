@@ -43,16 +43,17 @@ fn run_part1(memory: &[isize]) -> SuperResult<isize> {
     (0..5).permutations(5).unique()
         .map(|sequence| run_amplifier(memory, &sequence))
         //.try_fold(0, |a, b| Ok(std::cmp::max(a, b?)))
-        .fold_results(0, std::cmp::max)
+        .fold_results(0, std::cmp::max) // More convenient alternative to try_fold from Itertools
 }
 
 fn run_part1_rayon(memory: &[isize]) -> SuperResult<isize> {
-    // Doesn't seem to be possible to use Rayon ParallelBridge with Itertools...
-    let permutations: Vec<Vec<isize>> = (0..5).permutations(5).unique().collect();
-    permutations.par_iter()
-        .map(|sequence| run_amplifier(memory, &sequence))
-        // For some reason, the Rayon API requires calling both fold AND reduce??
-        .try_fold(|| 0, |a, b| Ok(std::cmp::max(a, b?)))
+    // Rayon doesn't play nicely with Itertools, so roll our own permutation
+    (0..factorial(5)).into_par_iter()
+        .map(|i| {
+            let mut sequence = [0, 1, 2, 3, 4];
+            nth_permutation(&mut sequence, i);
+            run_amplifier(memory, &sequence)
+        })
         .try_reduce(|| 0, |a, b| Ok(std::cmp::max(a, b)))
 }
 
@@ -64,12 +65,45 @@ fn run_part2(memory: &[isize]) -> SuperResult<isize> {
 }
 
 fn run_part2_rayon(memory: &[isize]) -> SuperResult<isize> {
-    let permutations: Vec<Vec<isize>> = (5..10).permutations(5).unique().collect();
-    permutations.par_iter()
-        .map(|sequence| run_feedback_amplifier(memory, &sequence))
-        // For some reason, the Rayon API requires calling both fold AND reduce??
-        .try_fold(|| 0, |a, b| Ok(std::cmp::max(a, b?)))
+    // Rayon doesn't play nicely with Itertools, so roll our own permutation
+    (0..factorial(5)).into_par_iter()
+        .map(|i| {
+            let mut sequence = [5, 6, 7, 8, 9];
+            nth_permutation(&mut sequence, i);
+            run_feedback_amplifier(memory, &sequence)
+        })
         .try_reduce(|| 0, |a, b| Ok(std::cmp::max(a, b)))
+}
+
+fn factorial(i: usize) -> usize {
+    (1..=i).product()
+}
+
+fn to_factoradic(mut value: usize, n: usize) -> Vec<usize> {
+    let mut factoradic = vec![0; n];
+    for i in 1..=n {
+        factoradic[n - i] = value % i;
+        value /= i;
+    }
+    factoradic
+}
+
+fn nth_permutation(sequence: &mut [isize], n: usize) {
+    // For each digit in the factoradic representation...
+    for (i, &offset) in to_factoradic(n, sequence.len()).iter().enumerate() {
+        // ...rotate the selected element into the ith position
+        sequence[i ..= i + offset].rotate_right(1);
+    }
+}
+
+#[test]
+fn test_permutation() {
+    (0..5).permutations(5).unique().enumerate()
+        .for_each(|(i, expected)| {
+            let mut sequence = [0, 1, 2, 3, 4];
+            nth_permutation(&mut sequence, i);
+            assert_eq!(&sequence[..], &expected[..]);
+        });
 }
 
 fn run_amplifier(memory: &[isize], sequence: &[isize]) -> SuperResult<isize> {
