@@ -2,6 +2,7 @@
 extern crate quick_error;
 
 use itertools::Itertools;
+use rayon::prelude::*;
 
 use intcode::Intcode;
 
@@ -31,44 +32,44 @@ fn main() -> SuperResult<()> {
         .map(str::parse)
         .collect::<Result<Vec<isize>, ParseIntError>>()?;
 
-    run_part1(&memory)?;
-    run_part2(&memory)?;
+    println!("Part 1: {}", run_part1_rayon(&memory)?);
+    println!("Part 2: {}", run_part2_rayon(&memory)?);
 
     Ok(())
 }
 
-fn run_part1(memory: &[isize]) -> SuperResult<()> {
-    // TODO this could be parallelized well
-    let mut best_result = 0;
-    let mut best_sequence = vec![];
-    for sequence in (0..5).permutations(5).unique() {
-        let result = run_amplifier(memory, &sequence)?;
-        if result > best_result {
-            best_result = result;
-            best_sequence = sequence;
-        }
-    }
-
-    println!("Part 1: {}, {:?}", best_result, best_sequence);
-
-    Ok(())
+#[allow(dead_code)]
+fn run_part1(memory: &[isize]) -> SuperResult<isize> {
+    (0..5).permutations(5).unique()
+        .map(|sequence| run_amplifier(memory, &sequence))
+        //.try_fold(0, |a, b| Ok(std::cmp::max(a, b?)))
+        .fold_results(0, std::cmp::max)
 }
 
-fn run_part2(memory: &[isize]) -> SuperResult<()> {
-    // TODO this could be parallelized well
-    let mut best_result = 0;
-    let mut best_sequence = vec![];
-    for sequence in (5..10).permutations(5).unique() {
-        let result = run_feedback_amplifier(memory, &sequence)?;
-        if result > best_result {
-            best_result = result;
-            best_sequence = sequence;
-        }
-    }
+fn run_part1_rayon(memory: &[isize]) -> SuperResult<isize> {
+    // Doesn't seem to be possible to use Rayon ParallelBridge with Itertools...
+    let permutations: Vec<Vec<isize>> = (0..5).permutations(5).unique().collect();
+    permutations.par_iter()
+        .map(|sequence| run_amplifier(memory, &sequence))
+        // For some reason, the Rayon API requires calling both fold AND reduce??
+        .try_fold(|| 0, |a, b| Ok(std::cmp::max(a, b?)))
+        .try_reduce(|| 0, |a, b| Ok(std::cmp::max(a, b)))
+}
 
-    println!("Part 2: {}, {:?}", best_result, best_sequence);
+#[allow(dead_code)]
+fn run_part2(memory: &[isize]) -> SuperResult<isize> {
+    (5..10).permutations(5).unique()
+        .map(|sequence| run_feedback_amplifier(memory, &sequence))
+        .fold_results(0, std::cmp::max)
+}
 
-    Ok(())
+fn run_part2_rayon(memory: &[isize]) -> SuperResult<isize> {
+    let permutations: Vec<Vec<isize>> = (5..10).permutations(5).unique().collect();
+    permutations.par_iter()
+        .map(|sequence| run_feedback_amplifier(memory, &sequence))
+        // For some reason, the Rayon API requires calling both fold AND reduce??
+        .try_fold(|| 0, |a, b| Ok(std::cmp::max(a, b?)))
+        .try_reduce(|| 0, |a, b| Ok(std::cmp::max(a, b)))
 }
 
 fn run_amplifier(memory: &[isize], sequence: &[isize]) -> SuperResult<isize> {
