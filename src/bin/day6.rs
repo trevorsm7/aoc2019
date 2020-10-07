@@ -3,7 +3,7 @@ extern crate quick_error;
 
 use std::borrow::Cow;
 use std::cell::Cell;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::env;
 use std::fs::File;
 use std::io::{self, prelude::*, BufReader};
@@ -87,7 +87,7 @@ fn count_transfers(orbits: &HashMap<u16, Orbit>, from: u16, to: u16) -> Option<u
 
 fn count_orbits(orbits: &HashMap<u16, Orbit>, id: u16) -> u32 {
     let orbit = &orbits[&id];
-    if let None = orbit.count.get() {
+    if orbit.count.get().is_none() {
         orbit.count.set(Some(count_orbits(&orbits, orbit.id) + 1));
     }
     orbit.count.get().unwrap()

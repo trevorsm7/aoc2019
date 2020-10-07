@@ -108,10 +108,10 @@ fn test_permutation() {
 
 fn run_amplifier(memory: &[isize], sequence: &[isize]) -> SuperResult<isize> {
     let mut input = 0;
-    for i in 0..5 {
+    for &phase in sequence {
         let mut program = Intcode::new(memory);
         program.run()?;
-        program.resume(sequence[i])?;
+        program.resume(phase)?;
         program.resume(input)?;
         input = *program.output.first().ok_or_else(||
             io::Error::new(io::ErrorKind::Other, "Program failed to produce output"))?;
@@ -135,19 +135,19 @@ fn test_amplifier() {
 fn run_feedback_amplifier(memory: &[isize], sequence: &[isize]) -> SuperResult<isize> {
     let mut input = 0;
     let mut amps = Vec::new();
-    for i in 0..5 {
+    for &phase in sequence {
         let mut amp = Intcode::new(memory);
         amp.run()?;
-        amp.resume(sequence[i])?;
+        amp.resume(phase)?;
         amps.push(amp);
     }
     let mut halted = false;
     while !halted {
-        for i in 0..5 {
-            if !amps[i].resume(input)? {
+        for amp in &mut amps {
+            if !amp.resume(input)? {
                 halted = true;
             }
-            input = *amps[i].output.last().ok_or_else(||
+            input = *amp.output.last().ok_or_else(||
                 io::Error::new(io::ErrorKind::Other, "Program failed to produce output"))?;
         }
     }
