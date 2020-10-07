@@ -31,6 +31,7 @@ fn main() -> SuperResult<()> {
     let rows = 6;
     let cols = 25;
     let pixels = rows * cols;
+    let layers = data.len() / pixels;
 
     let mut result = 0;
     let mut fewest_zeros = u32::MAX;
@@ -44,6 +45,26 @@ fn main() -> SuperResult<()> {
     }
 
     println!("Part 1: {}", result);
+
+    let image = (0..rows).map(|row| {
+        (0..cols).map(|col| {
+            let i = row * cols + col;
+            for j in 0..layers {
+                match data[j * pixels + i] {
+                    0 => return Ok('🀫'),
+                    1 => return Ok('🀆'),
+                    _ => continue,
+                }
+            }
+            Err(io::Error::new(io::ErrorKind::InvalidData,
+                format!("Invalid pixel ({}, {})", col, row)))
+        }).collect::<io::Result<String>>()
+    }).collect::<io::Result<Vec<String>>>()?;
+
+    println!("Part 2:");
+    for row in image {
+        println!("{}", row);
+    }
 
     Ok(())
 }
