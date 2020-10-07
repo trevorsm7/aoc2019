@@ -29,7 +29,10 @@ fn main() -> SuperResult<()> {
         .map(str::parse)
         .collect::<Result<Vec<isize>, ParseIntError>>()?;
 
-    // TODO
+    let mut program = Intcode::new(&memory);
+    program.run()?;
+    program.resume(1)?;
+    println!("Part 1: {:?}", program.output);
 
     Ok(())
 }
