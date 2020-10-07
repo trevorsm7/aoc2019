@@ -1,6 +1,8 @@
 #[macro_use]
 extern crate quick_error;
 
+use rayon::prelude::*;
+
 use std::borrow::Cow;
 use std::env;
 use std::io;
@@ -33,21 +35,18 @@ fn main() -> SuperResult<()> {
     let pixels = rows * cols;
     let layers = data.len() / pixels;
 
-    let mut result = 0;
-    let mut fewest_zeros = u32::MAX;
-    for layer in data.chunks(pixels) {
-        let mut count = [0; 3];
-        layer.iter().for_each(|&pixel| count[pixel as usize] += 1);
-        if count[0] < fewest_zeros {
-            fewest_zeros = count[0];
-            result = count[1] * count[2];
-        }
-    }
+    let (_, result) = data.par_chunks(pixels)
+        .map(|layer| {
+            let mut count = [0; 3];
+            layer.iter().for_each(|&pixel| count[pixel as usize] += 1);
+            (count[0], count[1] * count[2])
+        })
+        .min_by(|(x, _), (y, _)| x.cmp(&y)).unwrap();
 
     println!("Part 1: {}", result);
 
-    let image = (0..rows).map(|row| {
-        (0..cols).map(|col| {
+    let image = (0..rows).into_par_iter().map(|row| {
+        (0..cols).into_par_iter().map(|col| {
             let i = row * cols + col;
             for j in 0..layers {
                 match data[j * pixels + i] {
@@ -59,12 +58,9 @@ fn main() -> SuperResult<()> {
             Err(io::Error::new(io::ErrorKind::InvalidData,
                 format!("Invalid pixel ({}, {})", col, row)))
         }).collect::<io::Result<String>>()
-    }).collect::<io::Result<Vec<String>>>()?;
+    }).collect::<io::Result<Vec<String>>>()?.join("\n");
 
-    println!("Part 2:");
-    for row in image {
-        println!("{}", row);
-    }
+    println!("Part 2:\n{}", image);
 
     Ok(())
 }
