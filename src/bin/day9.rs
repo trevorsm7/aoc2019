@@ -34,6 +34,11 @@ fn main() -> SuperResult<()> {
     program.resume(1)?;
     println!("Part 1: {:?}", program.output);
 
+    let mut program = Intcode::new(&memory);
+    program.run()?;
+    program.resume(2)?;
+    println!("Part 2: {:?}", program.output);
+
     Ok(())
 }
 
