@@ -1,16 +1,20 @@
+use std::collections::HashMap;
 use std::io;
 
 pub struct Intcode {
     pub memory: Vec<isize>,
     pub output: Vec<isize>,
+    sparse_mem: HashMap<usize, isize>,
     pc: usize,
+    rel_base: isize,
 }
 
 impl Intcode {
     pub fn new(memory: &[isize]) -> Self {
         let memory = Vec::from(memory);
         let output = Vec::new();
-        Intcode {memory, output, pc: 0}
+        let sparse_mem = HashMap::new();
+        Intcode {memory, output, sparse_mem, pc: 0, rel_base: 0}
     }
 
     pub fn run(&mut self) -> io::Result<bool>
@@ -70,6 +74,11 @@ impl Intcode {
                     self.store(addr3, mode3, if a == b { 1 } else { 0 })?;
                     self.pc += 4;
                 },
+                9 => { // adjust relative base
+                    let a = self.load(addr1, mode1)?;
+                    self.rel_base += a;
+                    self.pc += 2;
+                },
                 99 => return Ok(false),
                 _ => return Err(io::Error::new(io::ErrorKind::Other,
                     format!("Illegal opcode {} at PC {}", opcode, self.pc))),
@@ -93,25 +102,41 @@ impl Intcode {
         self.run()
     }
 
+    fn read(&self, address: usize) -> isize {
+        if address < self.memory.len() {
+            self.memory[address]
+        } else {
+            *self.sparse_mem.get(&address).unwrap_or(&0)
+        }
+    }
+
+    fn write(&mut self, address: usize, value: isize) {
+        if address < self.memory.len() {
+            self.memory[address] = value;
+        } else {
+            self.sparse_mem.insert(address, value);
+        }
+    }
+
     fn load(&self, address: usize, mode: isize) -> io::Result<isize> {
-        let parameter = self.memory[address];
+        let parameter = self.read(address);
         match mode {
-            0 => Ok(self.memory[parameter as usize]),
-            1 => Ok(parameter),
+            0 => Ok(self.read(parameter as usize)), // Position mode
+            1 => Ok(parameter), // Immediate mode
+            2 => Ok(self.read((self.rel_base + parameter) as usize)), // Relative mode
             _ => Err(io::Error::new(io::ErrorKind::Other,
                 format!("Illegal load mode {} at PC {}", mode, self.pc))),
         }
     }
 
     fn store(&mut self, address: usize, mode: isize, value: isize) -> io::Result<()> {
-        let parameter = self.memory[address];
+        let parameter = self.read(address);
         match mode {
-            0 => {
-                self.memory[parameter as usize] = value;
-                Ok(())
-            },
-            _ => Err(io::Error::new(io::ErrorKind::Other,
+            0 => self.write(parameter as usize, value), // Position mode
+            2 => self.write((self.rel_base + parameter) as usize, value), // Relative mode
+            _ => return Err(io::Error::new(io::ErrorKind::Other,
                 format!("Illegal store mode {}", mode))),
-        }
+        };
+        Ok(())
     }
 }
