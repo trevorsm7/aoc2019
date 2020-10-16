@@ -1,8 +1,12 @@
 #[macro_use]
 extern crate quick_error;
 
+use ordered_float::NotNan;
+
 use std::{env, fs, io};
 use std::borrow::Cow;
+use std::collections::BTreeMap;
+use std::f32::consts::PI;
 use std::num::ParseIntError;
 
 quick_error! {
@@ -26,7 +30,93 @@ fn main() -> SuperResult<()> {
     let visible = compute_visibility(&coords);
     println!("Part 1: {}", visible.iter().max().unwrap());
 
+    let i = visible.iter().enumerate().max_by_key(|&(_, e)| e).unwrap().0;
+    let angles = sort_by_angle(&coords, i);
+    let removed = remove_by_angle(angles);
+
+    let two_hundred = removed[199];
+    println!("Part 2: {}", two_hundred.0 * 100 + two_hundred.1);
+
     Ok(())
+}
+
+type AngleMap = BTreeMap<NotNan<f32>, BTreeMap<NotNan<f32>, (usize, usize)>>;
+
+fn remove_by_angle(mut angles: AngleMap) -> Vec<(usize, usize)> {
+    let mut removed_coords = Vec::new();
+    while angles.len() > 0 {
+        let mut to_remove = Vec::new();
+        for (&angle, distances) in angles.iter_mut() {
+            let distance = distances.keys().cloned().next().unwrap();
+            let coord = distances.remove(&distance).unwrap();
+            removed_coords.push(coord);
+            if distances.len() == 0 {
+                to_remove.push(angle);
+            }
+        }
+        for angle in to_remove {
+            angles.remove(&angle);
+        }
+    }
+    removed_coords
+}
+
+#[test]
+fn test_remove_by_angle() {
+    let coords = parse_asteroid_map(
+       ".#..##.###...#######
+        ##.############..##.
+        .#.######.########.#
+        .###.#######.####.#.
+        #####.##.#.##.###.##
+        ..#####..#.#########
+        ####################
+        #.####....###.#.#.##
+        ##.#################
+        #####.##.###..####..
+        ..######..##.#######
+        ####.##.####...##..#
+        .#####..#.######.###
+        ##...#.##########...
+        #.##########.#######
+        .####.#.###.###.#.##
+        ....##.##.###..#####
+        .#.#.###########.###
+        #.#.#.#####.####.###
+        ###.##.####.##.#..##");
+    let visible = compute_visibility(&coords);
+    let best = visible.iter().enumerate().max_by_key(|&(_, e)| e).unwrap().0;
+    let angles = sort_by_angle(&coords, best);
+    let removed = remove_by_angle(angles);
+
+    assert_eq!(coords[best], (11, 13));
+    assert_eq!(removed[0], (11, 12));
+    assert_eq!(removed[1], (12, 1));
+    assert_eq!(removed[2], (12, 2));
+    assert_eq!(removed[9], (12, 8));
+    assert_eq!(removed[19], (16, 0));
+    assert_eq!(removed[49], (16, 9));
+    assert_eq!(removed[99], (10, 16));
+    assert_eq!(removed[198], (9, 6));
+    assert_eq!(removed[199], (8, 2));
+    assert_eq!(removed[200], (10, 9));
+    assert_eq!(removed[298], (11, 1));
+}
+
+fn sort_by_angle(coords: &[(usize, usize)], i: usize) -> AngleMap {
+    let a = coords[i];
+    let mut map = BTreeMap::new();
+    for &b in coords[..i].iter().chain(coords[i+1..].iter()) {
+        let dx = a.0 as f32 - b.0 as f32;
+        let dy = a.1 as f32 - b.1 as f32;
+        let angle = NotNan::new((dy.atan2(dx) / PI + 1.5) % 2.).unwrap(); // 0 to 2
+        let distance = NotNan::new(dy.hypot(dx)).unwrap(); // could be hypot2 or even Manhattan distance
+        if !map.contains_key(&angle) {
+            map.insert(angle, BTreeMap::new());
+        }
+        map.get_mut(&angle).unwrap().insert(distance, b);
+    }
+    map
 }
 
 fn compute_visibility(coords: &[(usize, usize)]) -> Vec<usize> {
