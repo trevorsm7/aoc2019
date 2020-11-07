@@ -32,18 +32,30 @@ fn main() -> SuperResult<()> {
         .map(str::parse)
         .collect::<Result<Vec<isize>, ParseIntError>>()?;
 
-    println!("Part 1: {:?}", paint_hull(&memory)?);
+    println!("Part 1: {:?}", paint_hull(&memory, false)?.len());
+
+    println!("Part 2:");
+    let hull = paint_hull(&memory, true)?;
+    display_hull(&hull);
 
     Ok(())
 }
 
-fn paint_hull(memory: &[isize]) -> SuperResult<usize> {
+type HullMap = HashMap<(isize, isize), isize>;
+
+fn paint_hull(memory: &[isize], part_two: bool) -> SuperResult<HullMap> {
     let mut program = Intcode::new(&memory);
     program.run()?;
     
     let mut position = (0, 0);
     let mut direction = 0; // The robot starts facing up
     let mut hull = HashMap::new();
+
+    // In part two, we start on a lone white panel
+    if part_two {
+        hull.insert((0, 0), 1);
+    }
+
     while program.resume(hull.get(&position).cloned().unwrap_or(0))? {
         let turn = program.output.pop().unwrap(); 
         let color = program.output.pop().unwrap();
@@ -64,12 +76,10 @@ fn paint_hull(memory: &[isize]) -> SuperResult<usize> {
         }
     }
 
-    display_hull(&hull);
-
-    Ok(hull.len())
+    Ok(hull)
 }
 
-fn display_hull(hull: &HashMap<(isize, isize), isize>) {
+fn display_hull(hull: &HullMap) {
     let (left, top, right, bottom) = compute_bounds(hull);
     let rows = bottom - top + 1;
     let cols = right - left + 1;
@@ -89,7 +99,7 @@ fn display_hull(hull: &HashMap<(isize, isize), isize>) {
     println!("{}", image);
 }
 
-fn compute_bounds(hull: &HashMap<(isize, isize), isize>) -> (isize, isize, isize, isize) {
+fn compute_bounds(hull: &HullMap) -> (isize, isize, isize, isize) {
     let mut left = isize::MAX;
     let mut top = isize::MAX;
     let mut right = isize::MIN;
