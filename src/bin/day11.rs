@@ -6,7 +6,7 @@ use rayon::prelude::*;
 use intcode::Intcode;
 
 use std::borrow::Cow;
-use std::collections::HashSet;
+use std::collections::HashMap;
 use std::env;
 use std::io;
 use std::num::ParseIntError;
@@ -43,17 +43,13 @@ fn paint_hull(memory: &[isize]) -> SuperResult<usize> {
     
     let mut position = (0, 0);
     let mut direction = 0; // The robot starts facing up
-    let mut hull = HashSet::new();
-    while program.resume(hull.contains(&position) as isize)? {
+    let mut hull = HashMap::new();
+    while program.resume(hull.get(&position).cloned().unwrap_or(0))? {
         let turn = program.output.pop().unwrap(); 
         let color = program.output.pop().unwrap();
 
         // 0 means black, and 1 means white
-        if color == 1 {
-            hull.insert(position);
-        } else {
-            hull.remove(&position);
-        }
+        hull.insert(position, color);
 
         // 0 means turn left 90 degrees, and 1 means turn right 90 degrees
         direction = (direction + turn * 2 + 3) % 4;
@@ -70,10 +66,10 @@ fn paint_hull(memory: &[isize]) -> SuperResult<usize> {
 
     display_hull(&hull);
 
-    Ok(0)
+    Ok(hull.len())
 }
 
-fn display_hull(hull: &HashSet<(isize, isize)>) {
+fn display_hull(hull: &HashMap<(isize, isize), isize>) {
     let (left, top, right, bottom) = compute_bounds(hull);
     let rows = bottom - top + 1;
     let cols = right - left + 1;
@@ -82,9 +78,10 @@ fn display_hull(hull: &HashSet<(isize, isize)>) {
         (0..cols).into_par_iter().map(|col| {
             let x = left + col;
             let y = top + row;
-            match hull.contains(&(x, y)) {
-                true => '🀫',
-                false => '🀆',
+            match hull.get(&(x, y)).cloned().unwrap_or(0) {
+                1 => '🀫',
+                0 => '🀆',
+                _ => panic!("Invalid color"),
             }
         }).collect::<String>()
     }).collect::<Vec<String>>().join("\n");
@@ -92,23 +89,25 @@ fn display_hull(hull: &HashSet<(isize, isize)>) {
     println!("{}", image);
 }
 
-fn compute_bounds(hull: &HashSet<(isize, isize)>) -> (isize, isize, isize, isize) {
+fn compute_bounds(hull: &HashMap<(isize, isize), isize>) -> (isize, isize, isize, isize) {
     let mut left = isize::MAX;
     let mut top = isize::MAX;
     let mut right = isize::MIN;
     let mut bottom = isize::MIN;
-    for &(x, y) in hull.iter() {
-        if x < left {
-            left = x;
-        }
-        if x > right {
-            right = x;
-        }
-        if y < top {
-            top = y;
-        }
-        if y > bottom {
-            bottom = y;
+    for (&(x, y), &color) in hull.iter() {
+        if color == 1 {
+            if x < left {
+                left = x;
+            }
+            if x > right {
+                right = x;
+            }
+            if y < top {
+                top = y;
+            }
+            if y > bottom {
+                bottom = y;
+            }
         }
     }
     (left, top, right, bottom)
