@@ -44,13 +44,13 @@ type AngleMap = BTreeMap<NotNan<f32>, BTreeMap<NotNan<f32>, (usize, usize)>>;
 
 fn remove_by_angle(mut angles: AngleMap) -> Vec<(usize, usize)> {
     let mut removed_coords = Vec::new();
-    while angles.len() > 0 {
+    while !angles.is_empty() {
         let mut to_remove = Vec::new();
         for (&angle, distances) in angles.iter_mut() {
             let distance = distances.keys().cloned().next().unwrap();
             let coord = distances.remove(&distance).unwrap();
             removed_coords.push(coord);
-            if distances.len() == 0 {
+            if distances.is_empty() {
                 to_remove.push(angle);
             }
         }
@@ -111,10 +111,7 @@ fn sort_by_angle(coords: &[(usize, usize)], i: usize) -> AngleMap {
         let dy = a.1 as f32 - b.1 as f32;
         let angle = NotNan::new((dy.atan2(dx) / PI + 1.5) % 2.).unwrap(); // 0 to 2
         let distance = NotNan::new(dy.hypot(dx)).unwrap(); // could be hypot2 or even Manhattan distance
-        if !map.contains_key(&angle) {
-            map.insert(angle, BTreeMap::new());
-        }
-        map.get_mut(&angle).unwrap().insert(distance, b);
+        map.entry(angle).or_insert_with(BTreeMap::new).insert(distance, b);
     }
     map
 }

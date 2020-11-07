@@ -154,7 +154,7 @@ fn is_sequence_monotonic(sequence: &[u32]) -> bool {
     for &digit in sequence.iter().skip(1) {
         if digit < max {
             return false;
-        } else if digit > max {
+        } else {
             max = digit;
         }
     }
